@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'Entities/Product.dart';
-import 'Controllers/ProductController.dart';
+import 'Repository/ProductDAO.dart';
 import 'Utils/ProductValidator.dart';
 
 void main() {
-  ProductController.seedInitialData();
+  Productdao dao = Productdao([]);
+
+  dao.l = Product.products;
 
   bool isRunning = true;
 
@@ -17,6 +19,7 @@ void main() {
     print('5. Search Products by Name');
     print('6. Search Product by ID');
     print('7. Sort Products by Price');
+    print('8. Increase All Prices by 10% (Map)');
     print('0. Exit');
     print('================================================');
     stdout.write('Please input your action option: ');
@@ -67,11 +70,13 @@ void main() {
         }
 
         Product newProduct = Product(id: id.trim(), name: name.trim(), image: image.trim(), price: price);
-        ProductController.addProduct(newProduct);
+
+        dao.add(newProduct);
         break;
 
       case '2':
-        ProductController.displayAll();
+        print('\n--- PRODUCT LIST ---');
+        dao.displayAll();
         break;
 
       case '3':
@@ -79,7 +84,7 @@ void main() {
         stdout.write('Enter Product ID to update: ');
         String updateId = stdin.readLineSync() ?? '';
 
-        Product? existingProduct = ProductController.searchById(updateId);
+        Product? existingProduct = dao.Find(updateId);
         if (existingProduct == null) {
           print('Update failed! Product ID: $updateId not found.');
           break;
@@ -140,14 +145,15 @@ void main() {
           print('[Validation Error] $error');
         }
 
-        ProductController.updateProduct(updateId, newName, newImage, newPrice);
+        Product updatedProduct = Product(id: updateId, name: newName, image: newImage, price: newPrice);
+        dao.Edit(updatedProduct);
         break;
 
       case '4':
         print('\n--- DELETE PRODUCT ---');
         stdout.write('Enter Product ID to delete: ');
         String deleteId = stdin.readLineSync() ?? '';
-        ProductController.deleteProduct(deleteId);
+        dao.delete(deleteId);
         break;
 
       case '5':
@@ -155,7 +161,7 @@ void main() {
         stdout.write('Enter Product Name keyword: ');
         String keyword = stdin.readLineSync() ?? '';
 
-        var queryResults = ProductController.searchByName(keyword);
+        var queryResults = dao.searchByName(keyword);
         if (queryResults.isEmpty) {
           print('Cannot find product');
         } else {
@@ -170,7 +176,8 @@ void main() {
         print('\n--- SEARCH PRODUCT BY ID ---');
         stdout.write('Enter Product ID: ');
         String searchId = stdin.readLineSync() ?? '';
-        Product? foundProduct = ProductController.searchById(searchId);
+
+        Product? foundProduct = dao.Find(searchId);
 
         if (foundProduct == null) {
           print('Cannot find product with ID: $searchId');
@@ -184,10 +191,20 @@ void main() {
         print('\n--- SORT PRODUCT BY PRICE ---');
         stdout.write('Execute ascending order sequencing? (y/n): ');
         String inputSequence = stdin.readLineSync()?.toLowerCase() ?? 'y';
-
         bool isAscending = (inputSequence == 'y');
-        ProductController.sortByPrice(ascending: isAscending);
-        ProductController.displayAll();
+
+        dao.l.sort((a, b) {
+          return isAscending ? a.price.compareTo(b.price) : b.price.compareTo(a.price);
+        });
+
+        print('Product list sorted.');
+        dao.displayAll();
+        break;
+
+      case '8':
+        print('\n--- INCREASE PRICE ---');
+        dao.increasePrice();
+        dao.displayAll();
         break;
 
       case '0':
@@ -196,7 +213,7 @@ void main() {
         break;
 
       default:
-        print('\nError: Option index must be between 0 and 7.');
+        print('\nError: Option index must be between 0 and 8.');
     }
   }
 }
